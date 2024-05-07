@@ -18,7 +18,7 @@ async function mainMenu() {
         choices: [
             'View (Departments, Roles, Employees)',
             'Add (Department, Role, Employee)',
-            'Update an Employee (Department, Role, Salary)',
+            'Update an Employee (Department, Role, Salary, Manager)',
             'Delete (Department, Role, Employee)',
             'Exit'
         ]
@@ -31,7 +31,7 @@ async function mainMenu() {
         case 'Add (Department, Role, Employee)':
             addMenu();
             break;
-        case 'Update an Employee (Department, Role, Salary)':
+        case 'Update an Employee (Department, Role, Salary, Manager)':
             updateEmployeeMenu();
             break;
         case 'Delete (Department, Role, Employee)':
@@ -265,6 +265,7 @@ async function updateEmployeeMenu() {
                 'Department',
                 'Role',
                 'Salary',
+                'Manager',
                 'Go Back'
             ]
         }
@@ -278,7 +279,10 @@ async function updateEmployeeMenu() {
             updateEmployeeRole(answer.employeeId);
             break;
         case 'Salary':
-            updateEmployeeSalary(answer.employeeId);  // Pass employeeId directly
+            updateEmployeeSalary(answer.employeeId);
+            break;
+        case 'Manager':
+            updateEmployeeManager(answer.employeeId);
             break;
         case 'Go Back':
             mainMenu();
@@ -326,6 +330,28 @@ async function updateEmployeeSalary(employeeId) {
     } else {
         console.log('Employee not found.');
     }
+    mainMenu();
+}
+
+async function updateEmployeeManager(employeeId) {
+    const employees = await pool.query('SELECT id, first_name, last_name FROM employee WHERE id != $1', [employeeId]);
+    const managerChoices = [{ name: 'None', value: null }].concat(employees.rows.map(emp => ({
+        name: `${emp.first_name} ${emp.last_name}`,
+        value: emp.id
+    })));
+
+    const answer = await inquirer.prompt([
+        {
+            name: 'managerId',
+            type: 'list',
+            message: 'Select the new manager for this employee:',
+            choices: managerChoices
+        }
+    ]);
+
+    const sql = 'UPDATE employee SET manager_id = $1 WHERE id = $2';
+    const res = await pool.query(sql, [answer.managerId, employeeId]);
+    console.log(res.rowCount > 0 ? 'Manager updated successfully!' : 'Failed to update manager.');
     mainMenu();
 }
 
