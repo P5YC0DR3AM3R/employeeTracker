@@ -143,7 +143,7 @@ async function addDepartment() {
     const answer = await inquirer.prompt({
         name: 'name',
         type: 'input',
-        message: 'Enter const rame of const repartment:'
+        message: 'Enter the name of the department:'
     });
 
     const existingDepartment = await pool.query('SELECT * FROM department WHERE department_name = $1', [answer.name]);
@@ -167,18 +167,18 @@ async function addRole() {
         {
             name: 'title',
             type: 'input',
-            message: 'Enter const ritle of const role:'
+            message: 'Enter the title of the role:'
         },
         {
             name: 'salary',
             type: 'input',
-            message: 'Enter const ralary for const role:',
+            message: 'Enter the salary for the role:',
             validate: value => !isNaN(parseFloat(value)) || "Please enter a number."
         },
         {
             name: 'departmentId',
             type: 'list',
-            message: 'Which department does const role belong to?',
+            message: 'Which department does the role belong to?',
             choices: departmentChoices
         }
     ]);
@@ -211,23 +211,23 @@ async function addEmployee() {
         {
             name: 'firstName',
             type: 'input',
-            message: 'Enter const rirst name of const rmployee:'
+            message: 'Enter the first name of the employee:'
         },
         {
             name: 'lastName',
             type: 'input',
-            message: 'Enter const rast name of const rmployee:'
+            message: 'Enter the last name of the employee:'
         },
         {
             name: 'roleId',
             type: 'list',
-            message: 'Select const role of const rmployee:',
+            message: 'Select the role of the employee:',
             choices: roleChoices
         },
         {
             name: 'managerId',
             type: 'list',
-            message: 'Select const ranager for const rmployee:',
+            message: 'Select the manager for the employee:',
             choices: managerChoices
         }
     ]);
@@ -244,46 +244,46 @@ async function addEmployee() {
 }
 
 async function updateEmployeeMenu() {
-  const employees = await pool.query('SELECT id, first_name, last_name FROM employee');
-  const employeeChoices = employees.rows.map(emp => ({
-      name: `${emp.first_name} ${emp.last_name}`,
-      value: emp.id
-  }));
+    const employees = await pool.query('SELECT id, first_name, last_name FROM employee');
+    const employeeChoices = employees.rows.map(emp => ({
+        name: `${emp.first_name} ${emp.last_name}`,
+        value: emp.id
+    }));
 
-  const answer = await inquirer.prompt([
-      {
-          name: 'employeeId',
-          type: 'list',
-          message: 'Select const rmployee you want to update:',
-          choices: employeeChoices
-      },
-      {
-          name: 'updateOption',
-          type: 'list',
-          message: 'What would you like to update for this employee?',
-          choices: [
-              'Department',
-              'Role',
-              'Salary',
-              'Go Back'
-          ]
-      }
-  ]);
+    const answer = await inquirer.prompt([
+        {
+            name: 'employeeId',
+            type: 'list',
+            message: 'Select the employee you want to update:',
+            choices: employeeChoices
+        },
+        {
+            name: 'updateOption',
+            type: 'list',
+            message: 'What would you like to update for this employee?',
+            choices: [
+                'Department',
+                'Role',
+                'Salary',
+                'Go Back'
+            ]
+        }
+    ]);
 
-  switch (answer.updateOption) {
-      case 'Department':
-          updateEmployeeDepartment(answer.employeeId);
-          break;
-      case 'Role':
-          updateEmployeeRole(answer.employeeId);
-          break;
-      case 'Salary':
-          updateEmployeeSalary(answer.employeeId);
-          break;
-      case 'Go Back':
-          mainMenu();
-          break;
-  }
+    switch (answer.updateOption) {
+        case 'Department':
+            updateEmployeeDepartment(answer.employeeId);
+            break;
+        case 'Role':
+            updateEmployeeRole(answer.employeeId);
+            break;
+        case 'Salary':
+            updateEmployeeSalary(answer.employeeId);  // Pass employeeId directly
+            break;
+        case 'Go Back':
+            mainMenu();
+            break;
+    }
 }
 
 async function updateEmployeeRole(employeeId) {
@@ -297,7 +297,7 @@ async function updateEmployeeRole(employeeId) {
       {
           name: 'roleId',
           type: 'list',
-          message: 'Select const rew role for const rmployee:',
+          message: 'Select the new role for the employee:',
           choices: roleChoices
       }
   ]);
@@ -308,36 +308,29 @@ async function updateEmployeeRole(employeeId) {
   mainMenu();
 }
 
-async function updateEmployeeSalary() {
-    const employees = await pool.query('SELECT id, first_name, last_name, role_id FROM employee');
-    const employeeChoices = employees.rows.map(emp => ({
-        name: `${emp.first_name} ${emp.last_name}`,
-        value: emp.id
-    }));
+async function updateEmployeeSalary(employeeId) {
+    const employee = await pool.query('SELECT first_name, last_name FROM employee WHERE id = $1', [employeeId]);
+    if (employee.rows.length > 0) {
+        const answers = await inquirer.prompt([
+            {
+                name: 'newSalary',
+                type: 'input',
+                message: `Enter the new salary for ${employee.rows[0].first_name} ${employee.rows[0].last_name}:`,
+                validate: value => !isNaN(parseFloat(value)) && parseFloat(value) > 0 || "Please enter a valid number greater than 0."
+            }
+        ]);
 
-    const answers = await inquirer.prompt([
-        {
-            name: 'employeeId',
-            type: 'list',
-            message: 'Which employee\'s salary do you want to update?',
-            choices: employeeChoices
-        },
-        {
-            name: 'newSalary',
-            type: 'input',
-            message: 'Enter const rew salary:',
-            validate: value => !isNaN(parseFloat(value)) && parseFloat(value) > 0 || "Please enter a valid number greater than 0."
-        }
-    ]);
-
-    const sql = 'UPDATE role SET salary = $1 WHERE id = (SELECT role_id FROM employee WHERE id = $2)';
-    const res = await pool.query(sql, [answers.newSalary, answers.employeeId]);
-    console.log(res.rowCount > 0 ? 'Employee salary updated successfully!' : 'Failed to update employee salary.');
+        const sql = 'UPDATE role SET salary = $1 WHERE id = (SELECT role_id FROM employee WHERE id = $2)';
+        const res = await pool.query(sql, [answers.newSalary, employeeId]);
+        console.log(res.rowCount > 0 ? 'Employee salary updated successfully!' : 'Failed to update employee salary.');
+    } else {
+        console.log('Employee not found.');
+    }
     mainMenu();
 }
 
 async function deleteEmployee() {
-    const employees = await pool.query('SELECT id, first_name, last_name FROM employee');
+    const employees = await pool.query('SELECT id, first_name, last_name, role_id FROM employee');
     const employeeChoices = employees.rows.map(emp => ({
         name: `${emp.first_name} ${emp.last_name}`,
         value: emp.id
@@ -347,7 +340,7 @@ async function deleteEmployee() {
         {
             name: 'employeeId',
             type: 'list',
-            message: 'Select const rmployee you want to delete:',
+            message: 'Select the employee you want to delete:',
             choices: employeeChoices
         },
         {
@@ -358,9 +351,26 @@ async function deleteEmployee() {
     ]);
 
     if (answer.confirm) {
+        const selectedEmployee = await pool.query('SELECT role_id FROM employee WHERE id = $1', [answer.employeeId]);
         const sql = 'DELETE FROM employee WHERE id = $1';
         const res = await pool.query(sql, [answer.employeeId]);
-        console.log(res.rowCount > 0 ? 'Employee deleted successfully!' : 'Failed to delete employee.');
+        if (res.rowCount > 0) {
+            console.log('Employee deleted successfully!');
+            // Check if any other employees are linked to this role
+            const remainingEmployees = await pool.query('SELECT id FROM employee WHERE role_id = $1', [selectedEmployee.rows[0].role_id]);
+            if (remainingEmployees.rowCount === 0) {
+                // If no employees are left in this role, delete the role
+                const deleteRoleSql = 'DELETE FROM role WHERE id = $1';
+                const roleDeleteResult = await pool.query(deleteRoleSql, [selectedEmployee.rows[0].role_id]);
+                if (roleDeleteResult.rowCount > 0) {
+                    console.log('Role deleted successfully as no employees were assigned to it.');
+                } else {
+                    console.log('Failed to delete the role.');
+                }
+            }
+        } else {
+            console.log('Failed to delete employee.');
+        }
     } else {
         console.log('Employee deletion cancelled.');
     }
@@ -378,7 +388,7 @@ async function deleteRole() {
         {
             name: 'roleId',
             type: 'list',
-            message: 'Select const role you want to delete:',
+            message: 'Select the role you want to delete:',
             choices: roleChoices
         },
         {
@@ -392,7 +402,7 @@ async function deleteRole() {
         // Check for employees assigned to this role
         const employees = await pool.query('SELECT id FROM employee WHERE role_id = $1', [answer.roleId]);
         if (employees.rows.length > 0) {
-            console.log('Cannot delete role because const r are employees assigned to it. Please reassign const rmployees first.');
+            console.log('Cannot delete role because there are employees assigned to it. Please reassign the employees first.');
         } else {
             const sql = 'DELETE FROM role WHERE id = $1';
             const res = await pool.query(sql, [answer.roleId]);
@@ -444,7 +454,7 @@ async function deleteDepartment() {
         {
             name: 'departmentId',
             type: 'list',
-            message: 'Select const repartment you want to delete:',
+            message: 'Select the department you want to delete:',
             choices: departmentChoices
         },
         {
@@ -458,7 +468,7 @@ async function deleteDepartment() {
         // Check for roles associated with this department
         const roles = await pool.query('SELECT id FROM role WHERE department_id = $1', [answer.departmentId]);
         if (roles.rows.length > 0) {
-            console.log('Cannot delete department because const r are roles assigned to it. Please delete const roles first.');
+            console.log('Cannot delete department because there are roles assigned to it. Please delete the roles first.');
         } else {
             const sql = 'DELETE FROM department WHERE id = $1';
             const res = await pool.query(sql, [answer.departmentId]);
@@ -466,6 +476,33 @@ async function deleteDepartment() {
         }
     } else {
         console.log('Department deletion cancelled.');
+    }
+    mainMenu();
+}
+
+async function updateEmployeeDepartment(employeeId) {
+    const departments = await pool.query('SELECT id, department_name FROM department');
+    const departmentChoices = departments.rows.map(dept => ({
+        name: dept.department_name,
+        value: dept.id
+    }));
+
+    const answer = await inquirer.prompt([
+        {
+            name: 'departmentId',
+            type: 'list',
+            message: 'Select the new department for the employee:',
+            choices: departmentChoices
+        }
+    ]);
+
+    const currentRole = await pool.query('SELECT role_id FROM employee WHERE id = $1', [employeeId]);
+    if (currentRole.rows.length > 0) {
+        const updateSql = 'UPDATE role SET department_id = $1 WHERE id = $2';
+        const res = await pool.query(updateSql, [answer.departmentId, currentRole.rows[0].role_id]);
+        console.log(res.rowCount > 0 ? 'Employee department updated successfully!' : 'Failed to update employee department.');
+    } else {
+        console.log('No existing role found for this employee. Please check your data.');
     }
     mainMenu();
 }
