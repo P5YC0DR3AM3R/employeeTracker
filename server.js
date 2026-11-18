@@ -1,11 +1,17 @@
 const inquirer = require('inquirer');
 const { Pool } = require('pg');
+require('dotenv').config();
+
+if (!process.env.PGPASSWORD) {
+    console.error('PGPASSWORD is not set. Copy .env.example to .env');
+    process.exit(1);
+}
 
 const pool = new Pool({
-    user: 'postgres',
-    password: 'rootroot',
-    host: 'localhost',
-    database: 'employees_db'
+    user: process.env.PGUSER || 'postgres',
+    password: process.env.PGPASSWORD,
+    host: process.env.PGHOST || 'localhost',
+    database: process.env.PGDATABASE || 'employees_db'
 });
 
 console.log(`Connected to the employees_db database.`);
